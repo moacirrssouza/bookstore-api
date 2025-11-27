@@ -19,6 +19,8 @@ public class GenresController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<GenreDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var genre = await _repo.GetByIdAsync(id, ct);
@@ -29,6 +31,7 @@ public class GenresController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<GenreDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync(CancellationToken ct)
     {
         var genres = await _repo.GetAllAsync(ct);
@@ -37,21 +40,32 @@ public class GenresController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<GenreDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateAsync(CreateGenreDto dto, CancellationToken ct)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(new ApiResponse("Invalid request payload."));
+
         var genre = new Genre(dto.Name);
         await _repo.CreateAsync(genre, ct);
 
         return CreatedAtAction(
-            nameof(GetAllAsync),
+            nameof(GetByIdAsync),
             new { id = genre.Id, version = "1.0" },
             new ApiResponse<GenreDto>(new GenreDto(genre.Id, genre.Name))
         );
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<GenreDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateAsync(Guid id, CreateGenreDto dto, CancellationToken ct)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(new ApiResponse("Invalid request payload."));
+
         var genre = await _repo.GetByIdAsync(id, ct);
         if (genre == null)
             return NotFound(new ApiResponse("Genre not found"));
@@ -62,6 +76,9 @@ public class GenresController : ControllerBase
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken ct)
     {
         var genre = await _repo.GetByIdAsync(id, ct);

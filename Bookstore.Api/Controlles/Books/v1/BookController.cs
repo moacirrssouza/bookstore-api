@@ -18,22 +18,19 @@ public class BooksController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<IEnumerable<BookDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync(CancellationToken ct)
     {
         var books = await _bookRepository.GetAllAsync(ct);
 
-        var dtos = books.Select(b => new BookDto(
-            b.Id,
-            b.Name,
-            b.Author?.Name ?? string.Empty,
-            b.Genre?.Name ?? string.Empty, 
-            b.Description
-        ));
+        var dtos = books.Select(MapToDto);
 
         return Ok(new ApiResponse<IEnumerable<BookDto>>(dtos));
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<BookDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(Guid id, CancellationToken ct)
     {
         var book = await _bookRepository.GetByIdAsync(id, ct);
@@ -41,59 +38,49 @@ public class BooksController : ControllerBase
         if (book == null)
             return NotFound(new ApiResponse("Book not found"));
 
-        var dto = new BookDto(
-            book.Id,
-            book.Name,
-            book.Author?.Name ?? string.Empty, 
-            book.Genre?.Name ?? string.Empty, 
-            book.Description
-        );
-
-        return Ok(new ApiResponse<BookDto>(dto));
+        return Ok(new ApiResponse<BookDto>(MapToDto(book)));
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<BookDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> CreateAsync(CreateBookDto dto, CancellationToken ct)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(new ApiResponse("Invalid request payload."));
+
         var book = new Book(dto.Name, dto.AuthorId, dto.GenreId, dto.Description);
         await _bookRepository.CreateAsync(book, ct);
 
-        var response = new BookDto(
-            book.Id,
-            book.Name,
-            book.Author.Name,
-            book.Genre.Name,
-            book.Description
-        );
-
         return CreatedAtAction(
-            nameof(GetAllAsync),
+            nameof(GetByIdAsync),
             new { id = book.Id, version = "1.0" },
-            new ApiResponse<BookDto>(response)
+            new ApiResponse<BookDto>(MapToDto(book))
         );
     }
 
     [HttpPut("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<BookDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> UpdateAsync(Guid id, CreateBookDto dto, CancellationToken ct)
     {
+        if (!ModelState.IsValid)
+            return BadRequest(new ApiResponse("Invalid request payload."));
+
         var book = await _bookRepository.GetByIdAsync(id, ct);
         if (book == null)
             return NotFound(new ApiResponse("Book not found"));
 
         book.Update(dto.Name, dto.AuthorId, dto.GenreId, dto.Description);
         await _bookRepository.UpdateAsync(book, ct);
-        var response = new BookDto(
-            book.Id,
-            book.Name,
-            book.Author.Name,
-            book.Genre.Name,
-            book.Description
-        );
 
-        return Ok(new ApiResponse<BookDto>(response));
+        return Ok(new ApiResponse<BookDto>(MapToDto(book)));
     }
 
     [HttpDelete("{id}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAsync(Guid id, CancellationToken ct)
     {
         var book = await _bookRepository.GetByIdAsync(id, ct);
@@ -103,4 +90,13 @@ public class BooksController : ControllerBase
         await _bookRepository.DeleteAsync(id, ct);
         return NoContent();
     }
+
+    private static BookDto MapToDto(Book book) =>
+        new(
+            book.Id,
+            book.Name,
+            book.Author?.Name ?? string.Empty,
+            book.Genre?.Name ?? string.Empty,
+            book.Description ?? string.Empty
+        );
 }
