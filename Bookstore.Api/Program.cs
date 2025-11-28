@@ -21,6 +21,16 @@ builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IGenreRepository, GenreRepository>();
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirTudo", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 // Controllers
 builder.Services.AddControllers();
 
@@ -76,6 +86,7 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseCors("PermitirTudo");
 app.UseHttpsRedirection();
 app.UseAuthorization();
 app.MapControllers();

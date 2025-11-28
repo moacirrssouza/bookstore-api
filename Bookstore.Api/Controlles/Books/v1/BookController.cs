@@ -1,4 +1,4 @@
-﻿using Bookstore.Api.Common;
+using Bookstore.Api.Common;
 using Bookstore.Appication.DTOs;
 using Bookstore.Domain.Repositories;
 using Microsoft.AspNetCore.Mvc;
@@ -28,7 +28,7 @@ public class BooksController : ControllerBase
         return Ok(new ApiResponse<IEnumerable<BookDto>>(dtos));
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id}", Name = "GetBookById")]
     [ProducesResponseType(typeof(ApiResponse<BookDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(Guid id, CancellationToken ct)
@@ -52,8 +52,8 @@ public class BooksController : ControllerBase
         var book = new Book(dto.Name, dto.AuthorId, dto.GenreId, dto.Description);
         await _bookRepository.CreateAsync(book, ct);
 
-        return CreatedAtAction(
-            nameof(GetByIdAsync),
+        return CreatedAtRoute(
+            "GetBookById",
             new { id = book.Id, version = "1.0" },
             new ApiResponse<BookDto>(MapToDto(book))
         );

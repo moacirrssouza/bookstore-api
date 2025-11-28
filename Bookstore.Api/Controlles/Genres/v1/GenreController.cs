@@ -18,7 +18,7 @@ public class GenresController : ControllerBase
         _repo = repo;
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id}", Name = "GetGenreById")]
     [ProducesResponseType(typeof(ApiResponse<GenreDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(Guid id, CancellationToken ct)
@@ -50,8 +50,8 @@ public class GenresController : ControllerBase
         var genre = new Genre(dto.Name);
         await _repo.CreateAsync(genre, ct);
 
-        return CreatedAtAction(
-            nameof(GetByIdAsync),
+        return CreatedAtRoute(
+            "GetGenreById",
             new { id = genre.Id, version = "1.0" },
             new ApiResponse<GenreDto>(new GenreDto(genre.Id, genre.Name))
         );

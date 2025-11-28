@@ -18,7 +18,7 @@ public class AuthorsController : ControllerBase
         _repo = repo;
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id}", Name = "GetAuthorById")]
     [ProducesResponseType(typeof(ApiResponse<AuthorDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(Guid id, CancellationToken ct)
@@ -50,8 +50,8 @@ public class AuthorsController : ControllerBase
         var author = new Author(dto.Name);
         await _repo.CreateAsync(author, ct);
 
-        return CreatedAtAction(
-            nameof(GetByIdAsync),
+        return CreatedAtRoute(
+            "GetAuthorById",
             new { id = author.Id, version = "1.0" },
             new ApiResponse<AuthorDto>(new AuthorDto(author.Id, author.Name))
         );
